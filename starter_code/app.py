@@ -163,10 +163,9 @@ def show_venue(venue_id):
   # shows the venue page with the given venue_id
   # TODO: replace with real venue data from the venues table, using venue_id
   now = datetime.utcnow()
-  venues= Venue.query.filter_by(id=venue_id).all()
+  venues= Venue.query.filter_by(id=venue_id).outerjoin(Show).all()
+  data={}
   for venue in venues:
-    past_shows= Show.query.filter(Show.start_time <= now).filter(venue.id==Show.venue_id)
-    upcoming_shows = Show.query.filter(Show.start_time>=now).filter(venue.id==Show.venue_id)
     data = {
       "id":venue.id,
       "name": venue.name,
@@ -182,27 +181,29 @@ def show_venue(venue_id):
       "image_link": venue.image_link,
       "past_shows": [],
       "upcoming_shows": [],
-      "past_shows_count": past_shows.count(),
-      "upcoming_shows_count": upcoming_shows.count(),
+      "past_shows_count": 0,
+      "upcoming_shows_count": 0,
     }
-    for past_show in past_shows:
-      past_show={
-        "artist_id": past_show.artist_id,
-        "artist_name": past_show.artist.name,
-        "artist_image_link": past_show.artist.image_link,
-        "start_time": format_datetime(str(past_show.start_time))
-      }
-      data['past_shows'].append(past_show)
-    for upcoming_show in upcoming_shows:
-      upcoming_show={
-        "artist_id": upcoming_show.artist_id,
-        "artist_name": upcoming_show.artist.name,
-        "artist_image_link": upcoming_show.artist.image_link,
-        "start_time": format_datetime(str(upcoming_show.start_time))
-      }
-      data["upcoming_shows"].append(upcoming_show)
+    for show in venue.shows:
+      if show.start_time <= now:
+        past_show={
+          "artist_id": show.artist_id,
+          "artist_name": show.artist.name,
+          "artist_image_link": show.artist.image_link,
+          "start_time": format_datetime(str(show.start_time))
+        }
+        data['past_shows'].append(past_show)
+        data['past_shows_count']=+1
+      if show.start_time >= now:
+        upcoming_show={
+          "artist_id": show.artist_id,
+          "artist_name": show.artist.name,
+          "artist_image_link": show.artist.image_link,
+          "start_time": format_datetime(str(show.start_time))
+        }
+        data["upcoming_shows"].append(upcoming_show)
+        data['upcoming_shows_count']=+1
 
-    
     
   return render_template('pages/show_venue.html', venue=data)
 
